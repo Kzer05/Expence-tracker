@@ -1,21 +1,23 @@
 {
-  "name": "wa-expense-twilio",
+  "name": "wa-expense-tracker",
   "version": "1.0.0",
   "type": "module",
-  "description": "WhatsApp expense tracker using Twilio + Claude AI + Supabase",
+  "description": "WhatsApp expense tracker using the Meta Cloud API, AI, and Supabase",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.47.0",
     "express": "^4.18.2",
     "node-cron": "^3.0.3",
-    "openai": "^4.78.1",
-    "twilio": "^5.3.3"
+    "openai": "^4.78.1"
   }
 }

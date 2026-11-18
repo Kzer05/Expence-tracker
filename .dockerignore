@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+npm-debug.log
+test
+test-results.txt
+supabase
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose.yml
+*.md

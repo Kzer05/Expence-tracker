@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { getAllPhonesThisMonth, getMonthlyReport } from "./supabase.js";
-import { sendMessage } from "./twilioApi.js";
+import { sendMessage } from "./messaging/whatsapp/index.js";
 
 export function startCronJobs() {
   // Runs at 9:00 AM every day on days 28–31

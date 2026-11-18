@@ -1,36 +1,64 @@
 import express from "express";
 import { handleIncomingMessage } from "./whatsapp.js";
 import { buildDashboardHtml } from "./dashboard/index.js";
+import {
+  extractIncomingMessages,
+  getWhatsAppConfig,
+  resolveWebhookChallenge,
+  verifyWebhookSignature,
+} from "./messaging/whatsapp/index.js";
 
 const app = express();
+let warnedAboutMissingSecret = false;
 
-// Twilio sends form-encoded POST bodies
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+app.use(express.json({
+  limit: "1mb",
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 
-// Dashboard / health landing page
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.status(200).type("html").send(buildDashboardHtml());
 });
 
-app.get("/health", (req, res) => res.send("Expense Tracker Bot is running ✅"));
+app.get("/health", (_req, res) => res.send("Expense Tracker Bot is running ✅"));
 
-// Twilio webhook — fires on every incoming WhatsApp message
-app.post("/webhook", async (req, res) => {
-  try {
-    const from = req.body.From;
-    const body = req.body.Body?.trim() || "";
-    const numMedia = parseInt(req.body.NumMedia || "0", 10);
-    const mediaUrl = numMedia > 0 ? req.body.MediaUrl0 : null;
-    const mediaType = numMedia > 0 ? req.body.MediaContentType0 : null;
+app.get("/webhook", (req, res) => {
+  const config = getWhatsAppConfig();
+  const challenge = resolveWebhookChallenge({
+    mode: req.query["hub.mode"],
+    token: req.query["hub.verify_token"],
+    challenge: req.query["hub.challenge"],
+    verifyToken: config.verifyToken,
+  });
 
-    await handleIncomingMessage({ from, body, mediaUrl, mediaType });
+  if (challenge == null) return res.sendStatus(403);
+  return res.status(200).type("text/plain").send(challenge);
+});
 
-    // Twilio expects an empty 200 — replies are sent via REST API, not TwiML
-    res.status(200).send("<Response></Response>");
-  } catch (err) {
-    console.error("Webhook error:", err);
-    res.status(200).send("<Response></Response>");
+app.post("/webhook", (req, res) => {
+  const config = getWhatsAppConfig();
+
+  if (config.appSecret) {
+    const valid = verifyWebhookSignature({
+      appSecret: config.appSecret,
+      rawBody: req.rawBody,
+      signatureHeader: req.get("x-hub-signature-256"),
+    });
+    if (!valid) return res.sendStatus(403);
+  } else if (!warnedAboutMissingSecret) {
+    warnedAboutMissingSecret = true;
+    console.warn("WHATSAPP_APP_SECRET is not set; webhook signatures are not being verified.");
+  }
+
+  const messages = extractIncomingMessages(req.body);
+  res.sendStatus(200);
+
+  for (const message of messages) {
+    handleIncomingMessage(message).catch((err) => {
+      console.error("Webhook processing error:", err);
+    });
   }
 });
 

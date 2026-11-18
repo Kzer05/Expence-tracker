@@ -5,7 +5,7 @@ import {
   getMonthlyReport,
   deleteLastExpense,
 } from "./supabase.js";
-import { sendMessage, downloadMedia } from "./twilioApi.js";
+import { sendMessage, downloadMedia } from "./messaging/whatsapp/index.js";
 
 const COMMANDS = {
   SUMMARY: ["summary", "total", "totals", "how much", "spent"],
@@ -40,12 +40,21 @@ export function createWhatsAppHandler({ llm, expenseStore, messenger }) {
     downloadMedia,
   };
 
-  return async function handleIncomingMessage({ from, body, mediaUrl, mediaType }) {
+  return async function handleIncomingMessage({ from, body, mediaId, mediaType, unsupportedType }) {
     try {
-      if (mediaUrl && mediaType?.startsWith("image/")) {
+      if (!from) return;
+
+      if (unsupportedType && !mediaId) {
+        return activeMessenger.sendMessage(
+          from,
+          "Send a text expense, like *food 200*, or a photo of the bill."
+        );
+      }
+
+      if (mediaId && mediaType?.startsWith("image/")) {
         await activeMessenger.sendMessage(from, "📸 Got your bill! Analyzing it...");
 
-        const imageBuffer = await activeMessenger.downloadMedia(mediaUrl);
+        const imageBuffer = await activeMessenger.downloadMedia(mediaId);
         const expense = await activeLLM.parseExpenseFromImage(imageBuffer, mediaType);
 
         if (!expense?.amount) {

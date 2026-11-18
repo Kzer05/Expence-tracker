@@ -9,8 +9,13 @@ function escapeHtml(value) {
 
 export function renderDashboard(data) {
   const providerLabel = data.providerLabels?.[data.provider] || data.provider;
-  const twilioNumber = escapeHtml(data.twilioNumber);
-  const sandboxJoinCode = escapeHtml(data.sandboxJoinCode);
+  const displayPhoneNumber = escapeHtml(data.displayPhoneNumber);
+  const webhookUrl = escapeHtml(data.webhookUrl);
+  const phoneNumberId = escapeHtml(data.phoneNumberId);
+  const apiVersion = escapeHtml(data.apiVersion);
+  const missingEnv = escapeHtml((data.missingEnv || []).join(", ") || "none");
+  const credentialLabel = data.credentialsReady ? "Ready" : "Missing credentials";
+  const credentialClass = data.credentialsReady ? "good" : "warn";
   const appName = escapeHtml(data.appName);
 
   return `<!doctype html>
@@ -630,7 +635,7 @@ export function renderDashboard(data) {
         <div class="brand-mark">ET</div>
         <div class="brand-copy">
           <strong>${appName}</strong>
-          <span>WhatsApp expense tracking for Twilio sandbox onboarding</span>
+          <span>WhatsApp expense tracking with the Meta Cloud API</span>
         </div>
       </div>
 
@@ -646,27 +651,34 @@ export function renderDashboard(data) {
         <div class="eyebrow">WhatsApp expense assistant</div>
         <h1>Track spending by sending one message or a bill photo.</h1>
         <p class="lede">
-          This dashboard is designed to help new users join the Twilio sandbox quickly, understand the number to message, and learn the exact commands they can use right away.
+          Message the business number below. The bot logs the expense, stores it, and answers with the monthly summary.
         </p>
         <div class="cta-row">
-          <button class="button button-primary" data-copy="join ${sandboxJoinCode}">Copy sandbox join code</button>
-          <button class="button button-secondary" data-copy="${twilioNumber}">Copy Twilio number</button>
+          <button class="button button-primary" data-copy="${webhookUrl}">Copy webhook URL</button>
+          <button class="button button-secondary" data-copy="${displayPhoneNumber}">Copy WhatsApp number</button>
         </div>
       </section>
 
       <aside class="panel hero-side">
         <div class="metric">
-          <span class="metric-label">Twilio WhatsApp number</span>
+          <span class="metric-label">WhatsApp number</span>
           <div class="metric-value">
-            <span class="metric-code">${twilioNumber}</span>
-            <button class="copy" data-copy="${twilioNumber}">Copy</button>
+            <span class="metric-code">${displayPhoneNumber}</span>
+            <button class="copy" data-copy="${displayPhoneNumber}">Copy</button>
           </div>
         </div>
         <div class="metric">
-          <span class="metric-label">Sandbox join code</span>
+          <span class="metric-label">Webhook URL</span>
           <div class="metric-value">
-            <span class="metric-code">join ${sandboxJoinCode}</span>
-            <button class="copy" data-copy="join ${sandboxJoinCode}">Copy</button>
+            <span class="metric-code">${webhookUrl}</span>
+            <button class="copy" data-copy="${webhookUrl}">Copy</button>
+          </div>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Phone number ID · ${apiVersion}</span>
+          <div class="metric-value">
+            <span class="metric-code">${phoneNumberId}</span>
+            <span class="pill ${credentialClass}">${credentialLabel}</span>
           </div>
         </div>
         <div class="metric">
@@ -693,15 +705,15 @@ export function renderDashboard(data) {
           <li class="list-item">
             <div class="list-icon">1</div>
             <div>
-              <strong>Open WhatsApp on your phone</strong>
-              <p>Use the WhatsApp app you want to connect. If you are using Twilio sandbox, keep this phone number ready for the join step.</p>
+              <strong>Add the Cloud API credentials</strong>
+              <p>Fill <code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_VERIFY_TOKEN</code>, and <code>WHATSAPP_APP_SECRET</code> in <code>.env</code>. Missing now: ${missingEnv}.</p>
             </div>
           </li>
           <li class="list-item">
             <div class="list-icon">2</div>
             <div>
-              <strong>Send the sandbox join code</strong>
-              <p>Message <code>join ${sandboxJoinCode}</code> to the Twilio WhatsApp number shown on the right, then wait for Twilio to confirm the connection.</p>
+              <strong>Connect the Meta webhook</strong>
+              <p>In the Meta app, set the callback to <code>${webhookUrl}</code>, paste the same verify token, and subscribe to the <code>messages</code> field.</p>
             </div>
           </li>
           <li class="list-item">
@@ -725,11 +737,11 @@ export function renderDashboard(data) {
         <div class="grid-two">
           <div class="info-card">
             <span>Message the bot</span>
-            <strong>${twilioNumber}</strong>
+            <strong>${displayPhoneNumber}</strong>
           </div>
           <div class="info-card">
-            <span>Join code</span>
-            <strong>join ${sandboxJoinCode}</strong>
+            <span>Webhook</span>
+            <strong>${webhookUrl}</strong>
           </div>
           <div class="info-card">
             <span>Summary command</span>
@@ -799,7 +811,7 @@ export function renderDashboard(data) {
             <div class="list-icon">HQ</div>
             <div>
               <strong>Designed for onboarding</strong>
-              <p>The page focuses on the first two questions users usually have: what number to message and how to join the sandbox.</p>
+              <p>The page shows the business number to message and the webhook URL to register in the Meta app.</p>
             </div>
           </div>
         </div>
@@ -819,14 +831,14 @@ export function renderDashboard(data) {
             <div class="timeline-mark">0-15 min</div>
             <div>
               <strong>Configure environment and credentials</strong>
-              <p>Set Twilio keys, Supabase keys, and the AI provider in your env file, then start the server and confirm the dashboard is reachable.</p>
+              <p>Set the WhatsApp Cloud API keys, Supabase keys, and the AI provider in your env file, then start the server and confirm the dashboard is reachable.</p>
             </div>
           </div>
           <div class="timeline-item">
             <div class="timeline-mark">15-30 min</div>
             <div>
-              <strong>Connect WhatsApp sandbox</strong>
-              <p>Send the sandbox join message from your test phone, then verify that Twilio and your webhook receive and process messages end-to-end.</p>
+              <strong>Register the Meta webhook</strong>
+              <p>Point the Meta callback at the public webhook URL, confirm the verify token, and send a test message from an allowed number.</p>
             </div>
           </div>
           <div class="timeline-item">
@@ -850,12 +862,12 @@ export function renderDashboard(data) {
         <div class="section-head">
           <div>
             <h2>Integration checklist</h2>
-            <p class="section-copy">Use this before inviting real users or moving from sandbox to production sender.</p>
+            <p class="section-copy">Use this before inviting real users onto the WhatsApp business number.</p>
           </div>
         </div>
 
         <ul class="checklist">
-          <li><strong>Webhook URL configured:</strong> Twilio sandbox points to your live webhook endpoint with HTTPS.</li>
+          <li><strong>Webhook URL configured:</strong> the Meta app callback points at the public HTTPS <code>/webhook</code> endpoint and is subscribed to messages.</li>
           <li><strong>Database healthy:</strong> Supabase table and summary RPC available with correct service role permissions.</li>
           <li><strong>Provider strategy set:</strong> Primary provider chosen and fallback providers configured with valid API keys.</li>
           <li><strong>Command UX verified:</strong> help, summary, report, and delete flow tested from a real WhatsApp device.</li>
@@ -932,11 +944,11 @@ export function renderDashboard(data) {
         <div class="faq-grid">
           <div class="faq-item">
             <strong>Messages are not reaching the bot. What should I check?</strong>
-            <p>Confirm Twilio sandbox webhook URL, ensure your service is publicly reachable, and verify server logs for incoming webhook requests.</p>
+            <p>Confirm the Meta callback URL, the verify token, the <code>messages</code> subscription, and that the server is publicly reachable over HTTPS. Then check the server logs.</p>
           </div>
           <div class="faq-item">
-            <strong>Join command not working in WhatsApp</strong>
-            <p>Use the exact sandbox join phrase shown above, send it from the same number you plan to test with, and check Twilio sandbox status.</p>
+            <strong>Meta rejected the webhook verification</strong>
+            <p><code>WHATSAPP_VERIFY_TOKEN</code> must match the token typed in the Meta webhook form, and <code>GET /webhook</code> must be reachable from the internet.</p>
           </div>
           <div class="faq-item">
             <strong>Why is AI parsing inconsistent for some receipts?</strong>
@@ -951,14 +963,14 @@ export function renderDashboard(data) {
             <p>Check timezone boundaries for monthly windows and verify entries were saved under the same WhatsApp number identifier.</p>
           </div>
           <div class="faq-item">
-            <strong>How do we move from sandbox to production?</strong>
-            <p>Get an approved WhatsApp sender in Twilio, update the sender number, switch webhook config, and update dashboard onboarding copy.</p>
+            <strong>How do we go live beyond test numbers?</strong>
+            <p>Finish Meta business verification, register the display name, and publish the app. Until then, only numbers added as testers can message the bot.</p>
           </div>
         </div>
       </article>
     </section>
 
-    <div class="footer">Need production setup? Replace the sandbox sender with your approved Twilio WhatsApp number and update the dashboard copy accordingly.</div>
+    <div class="footer">Credentials stay in <code>.env</code>. The dashboard never shows the access token or the app secret.</div>
   </main>
 
   <script>

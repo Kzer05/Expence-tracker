@@ -1,16 +1,20 @@
-function normalizeSandboxJoinCode(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "drove-lamp";
-
-  // Accept both "drove-lamp" and "join drove-lamp" from config.
-  return raw.replace(/^join\s+/i, "").trim() || "drove-lamp";
-}
+import { getWhatsAppConfig, missingWhatsAppEnv } from "../messaging/whatsapp/config.js";
 
 export function getDashboardData(env = process.env) {
+  const whatsapp = getWhatsAppConfig(env);
+  const missingEnv = missingWhatsAppEnv(whatsapp);
+  const webhookUrl = whatsapp.webhookPublicUrl
+    ? `${whatsapp.webhookPublicUrl}/webhook`
+    : "/webhook";
+
   return {
     appName: "Expense Tracker Bot",
-    twilioNumber: env.TWILIO_WHATSAPP_NUMBER || "+14155238886",
-    sandboxJoinCode: normalizeSandboxJoinCode(env.TWILIO_SANDBOX_JOIN_CODE),
+    displayPhoneNumber: whatsapp.displayPhoneNumber || "Not set",
+    phoneNumberId: whatsapp.phoneNumberId || "Not set",
+    webhookUrl,
+    apiVersion: whatsapp.apiVersion,
+    credentialsReady: missingEnv.length === 0,
+    missingEnv,
     provider: env.LLM_PROVIDER || "gemini",
     providerLabels: {
       claude: "Claude",
